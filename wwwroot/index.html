@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Server</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ─── Header ─────────────────────────────────────────────── -->
+  <header>
+    <h1>📷 Camera Server</h1>
+    <span id="cam-status-pill" class="pill pill-warn"><span class="dot"></span>Connecting…</span>
+    <div class="spacer"></div>
+    <span id="fps-label" style="font-size:12px;color:var(--muted);font-family:monospace">-- fps</span>
+    <span id="res-label" style="font-size:12px;color:var(--muted);margin-left:10px">--×--</span>
+    <span id="uptime-label" style="font-size:12px;color:var(--muted);margin-left:10px">up --</span>
+  </header>
+
+  <!-- ─── Main ────────────────────────────────────────────────── -->
+  <div id="main">
+
+    <!-- Camera feed -->
+    <div id="cam-panel">
+      <div id="stream-wrap">
+        <img id="stream" src="/stream" alt="Camera stream">
+      </div>
+      <div id="cam-overlay">
+        <button class="btn btn-ghost btn-sm" onclick="doSnapshot()">📷 Snapshot</button>
+        <button class="btn btn-ghost btn-sm" id="btn-reopen" onclick="forceReopen()">🔄 Reopen</button>
+        <button class="btn btn-danger  btn-sm" id="btn-resume" onclick="resumeLive()" style="display:none;">✕ Resume</button>
+      </div>
+    </div>
+
+    <!-- Right control panel -->
+    <div id="right-panel">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('test',this)">Test</button>
+        <button class="tab-btn"        onclick="switchTab('camera',this)">Camera</button>
+        <button class="tab-btn"        onclick="switchTab('logs',this)">Logs</button>
+      </div>
+
+      <!-- ──────────────── TEST TAB ──────────────────────────── -->
+      <div id="tab-test" class="tab-content active">
+
+        <div class="row">
+          <div class="field">
+            <label>Head</label>
+            <input id="in-head" type="text" value="A" placeholder="Head ID">
+          </div>
+          <div class="field">
+            <label>Step</label>
+            <input id="in-step" type="text" value="read2d" placeholder="Step name">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Mode</label>
+          <select id="in-mode" onchange="onModeChange()">
+            <option value="Normal">Normal (live view)</option>
+            <option value="Read2d" selected>Read 2D DataMatrix</option>
+            <option value="Compare">Compare Image</option>
+            <option value="CheckLed">Check LED</option>
+            <option value="BlinkLed">Blink LED</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Timeout (ms)</label>
+          <input id="in-timeout" type="number" value="30000" min="1000" step="1000">
+        </div>
+
+        <!-- ROI -->
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">ROI (0=full frame)</div>
+        <div class="row">
+          <div class="field"><label>X</label><input id="roi-x" type="number" value="0" min="0"></div>
+          <div class="field"><label>Y</label><input id="roi-y" type="number" value="0" min="0"></div>
+          <div class="field"><label>W</label><input id="roi-w" type="number" value="0" min="0"></div>
+          <div class="field"><label>H</label><input id="roi-h" type="number" value="0" min="0"></div>
+        </div>
+
+        <!-- ── Read2d params ── -->
+        <div id="params-read2d" class="mode-params">
+          <div class="row">
+            <div class="field">
+              <label>Expected digits (0=any)</label>
+              <input id="r2d-digits" type="number" value="10" min="0">
+            </div>
+            <div class="field">
+              <label>Pre-rotate °</label>
+              <input id="r2d-rotate" type="number" value="0">
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Compare params ── -->
+        <div id="params-compare" class="mode-params" style="display:none">
+          <div class="field">
+            <label>Reference folder</label>
+            <input id="cmp-folder" type="text" placeholder="config/step_name">
+          </div>
+          <div class="field">
+            <label>Steps (reference images count)</label>
+            <input id="cmp-steps" type="number" value="1" min="1">
+          </div>
+        </div>
+
+        <!-- ── CheckLed / BlinkLed params ── -->
+        <div id="params-led" class="mode-params" style="display:none">
+          <div class="field">
+            <label>Color space</label>
+            <select id="led-space">
+              <option value="bgr">BGR</option>
+              <option value="hsv">HSV</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="field"><label>Low [0]</label><input id="led-l0" type="number" value="0"></div>
+            <div class="field"><label>Low [1]</label><input id="led-l1" type="number" value="0"></div>
+            <div class="field"><label>Low [2]</label><input id="led-l2" type="number" value="0"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>High [0]</label><input id="led-h0" type="number" value="255"></div>
+            <div class="field"><label>High [1]</label><input id="led-h1" type="number" value="255"></div>
+            <div class="field"><label>High [2]</label><input id="led-h2" type="number" value="255"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Min pixels</label><input id="led-mask" type="number" value="100"></div>
+            <div class="field"><label>Hold ms (CheckLed)</label><input id="led-hold" type="number" value="500"></div>
+          </div>
+          <!-- BlinkLed only -->
+          <div id="params-blink" style="display:none">
+            <div class="row">
+              <div class="field"><label>Freq Hz (0=any)</label><input id="blink-freq" type="number" value="0" step="0.1"></div>
+              <div class="field"><label>±Tolerance</label><input id="blink-ftol" type="number" value="0.5" step="0.1"></div>
+            </div>
+            <div class="row">
+              <div class="field"><label>Duty % (0=any)</label><input id="blink-duty" type="number" value="0" step="1"></div>
+              <div class="field"><label>±Tolerance</label><input id="blink-dtol" type="number" value="5" step="1"></div>
+            </div>
+            <div class="field"><label>Sample cycles</label><input id="blink-samples" type="number" value="20" min="5"></div>
+          </div>
+        </div>
+
+        <!-- Start / Cancel -->
+        <div class="btn-row" style="margin-top:4px;">
+          <button class="btn btn-primary" id="btn-start"  onclick="startTest()">▶ Start Test</button>
+          <button class="btn btn-danger"  id="btn-cancel" onclick="cancelTest()" disabled>■ Cancel</button>
+        </div>
+
+        <!-- Result -->
+        <div id="result-box">
+          <div id="result-badge" class="badge-idle">IDLE</div>
+          <div id="result-value"></div>
+          <div id="result-detail"></div>
+          <div id="result-time"></div>
+        </div>
+
+      </div><!-- /tab-test -->
+
+      <!-- ──────────────── CAMERA TAB ──────────────────────── -->
+      <div id="tab-camera" class="tab-content">
+
+        <!-- Status -->
+        <dl class="info-grid">
+          <dt>State</dt>      <dd id="ci-state">--</dd>
+          <dt>Port</dt>       <dd id="ci-port">--</dd>
+          <dt>Resolution</dt> <dd id="ci-res">--</dd>
+          <dt>FPS</dt>        <dd id="ci-fps">--</dd>
+          <dt>Uptime</dt>     <dd id="ci-uptime">--</dd>
+          <dt>Black frames</dt><dd id="ci-black">0</dd>
+        </dl>
+
+        <div style="border-top:1px solid var(--border);margin:10px 0;"></div>
+
+        <!-- On / Off -->
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" id="btn-cam-start" onclick="startCamera()" style="flex:1;display:none;">▶ Start Camera</button>
+          <button class="btn btn-danger  btn-sm" id="btn-cam-stop"  onclick="stopCamera()"  style="flex:1;">⏹ Stop Camera</button>
+          <button class="btn btn-ghost   btn-sm" onclick="forceReopen()" style="flex:1;">🔄 Reopen</button>
+        </div>
+
+        <div style="border-top:1px solid var(--border);margin:10px 0;"></div>
+
+        <!-- Port selector -->
+        <div class="row">
+          <div class="field">
+            <label>Camera port index</label>
+            <input id="in-port" type="number" value="0" min="0" max="9">
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button class="btn btn-ghost btn-sm" onclick="setPort()">Set Port</button>
+          </div>
+        </div>
+
+        <!-- Resolution -->
+        <div class="row" style="margin-top:6px;">
+          <div class="field">
+            <label>Resolution</label>
+            <select id="sel-resolution" onchange="onResolutionChange()">
+              <option value="0x0">Auto (camera default)</option>
+              <option value="320x240">320 × 240</option>
+              <option value="640x480">640 × 480</option>
+              <option value="1280x720" selected>1280 × 720 (HD)</option>
+              <option value="1920x1080">1920 × 1080 (Full HD)</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button class="btn btn-ghost btn-sm" onclick="setResolution()">Apply</button>
+          </div>
+        </div>
+        <div class="row" id="res-custom" style="display:none;margin-top:4px;">
+          <div class="field"><label>Width</label><input id="res-w" type="number" value="1280" min="160"></div>
+          <div class="field"><label>Height</label><input id="res-h" type="number" value="720" min="120"></div>
+        </div>
+
+        <!-- Rotation + FPS -->
+        <div class="row" style="margin-top:6px;">
+          <div class="field">
+            <label>Rotation</label>
+            <select id="sel-rotation" onchange="setRotation()">
+              <option value="0">0°</option>
+              <option value="90">90° CW</option>
+              <option value="180">180°</option>
+              <option value="270">270° CCW</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Target FPS</label>
+            <select id="sel-fps" onchange="setTargetFps()">
+              <option value="5">5 fps</option>
+              <option value="10">10 fps</option>
+              <option value="15">15 fps</option>
+              <option value="20">20 fps</option>
+              <option value="25">25 fps</option>
+              <option value="30">30 fps</option>
+              <option value="60">60 fps</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Save -->
+        <button class="btn btn-primary" onclick="saveSettings(this)"
+                style="width:100%;justify-content:center;display:flex;gap:8px;align-items:center;margin-top:4px;">
+          💾 Save Settings
+        </button>
+
+        <div style="border-top:1px solid var(--border);margin:10px 0;"></div>
+
+        <!-- Native dialog -->
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">
+          Opens the manufacturer's settings window directly on the server screen.<br>
+          Adjust exposure, focus, white balance, anti-flicker, etc. then close it.
+        </div>
+        <button class="btn btn-primary" id="btn-cam-props" onclick="showCameraProperties()"
+                style="width:100%;justify-content:center;display:flex;gap:8px;align-items:center;">
+          ⚙️ Open Camera Properties
+        </button>
+        <div id="cam-props-hint"
+             style="font-size:11px;color:var(--yellow);margin-top:6px;display:none;text-align:center;">
+          ● Dialog is open on the server screen — close it to resume stream.
+        </div>
+
+      </div><!-- /tab-camera -->
+
+      <!-- ──────────────── LOGS TAB ──────────────────────────── -->
+      <div id="tab-logs" class="tab-content">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="log-level-filter" onchange="loadLogs()" style="flex:1;">
+            <option value="">All levels</option>
+            <option value="EVENT">EVENT</option>
+            <option value="INFO">INFO</option>
+            <option value="WARN">WARN</option>
+            <option value="ERROR">ERROR</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="loadLogs()">↺</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportLog()">⬇ Export</button>
+        </div>
+        <div id="log-box"></div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:4px;">
+          <input type="checkbox" id="log-auto" checked> Auto-refresh (3s)
+        </label>
+      </div><!-- /tab-logs -->
+
+    </div><!-- /right-panel -->
+  </div><!-- /main -->
+
+</div><!-- /app -->
+
+<script src="app.js"></script>
+</body>
+</html>

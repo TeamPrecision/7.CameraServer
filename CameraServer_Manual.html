@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CameraServer — User Manual</title>
+<style>
+  /* ── base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --accent: #0057b8;
+    --accent2: #0085cc;
+    --green:  #1a7a3f;
+    --red:    #c0392b;
+    --orange: #d35400;
+    --bg:     #ffffff;
+    --bg2:    #f5f7fa;
+    --border: #dde2ea;
+    --text:   #1a1d27;
+    --muted:  #5a6278;
+    --code:   #f0f2f7;
+    --font:   'Segoe UI', system-ui, Arial, sans-serif;
+    --mono:   'Cascadia Code', 'Consolas', 'Courier New', monospace;
+  }
+  html { font-size: 14px; }
+  body { font-family: var(--font); color: var(--text); background: var(--bg); line-height: 1.65; }
+
+  /* ── layout ── */
+  .page { max-width: 900px; margin: 0 auto; padding: 40px 48px; }
+
+  /* ── cover ── */
+  .cover { text-align: center; padding: 60px 0 50px; border-bottom: 3px solid var(--accent); margin-bottom: 48px; }
+  .cover h1 { font-size: 36px; color: var(--accent); letter-spacing: 1px; margin-bottom: 8px; }
+  .cover .subtitle { font-size: 16px; color: var(--muted); margin-bottom: 24px; }
+  .cover .meta { font-size: 12px; color: var(--muted); }
+  .cover .badge { display: inline-block; background: var(--accent); color: #fff; border-radius: 4px; padding: 3px 10px; font-size: 12px; font-weight: 600; margin: 2px; }
+  .cover .badge.green  { background: var(--green); }
+  .cover .badge.orange { background: var(--orange); }
+
+  /* ── toc ── */
+  .toc { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 24px 30px; margin-bottom: 40px; }
+  .toc h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 14px; }
+  .toc ol  { padding-left: 20px; }
+  .toc li  { margin: 4px 0; }
+  .toc a   { color: var(--accent); text-decoration: none; font-size: 13px; }
+  .toc a:hover { text-decoration: underline; }
+  .toc ol ol { margin-top: 4px; list-style-type: lower-alpha; }
+
+  /* ── headings ── */
+  h1, h2, h3, h4 { font-weight: 700; line-height: 1.3; }
+  h2 { font-size: 22px; color: var(--accent); border-bottom: 2px solid var(--border); padding-bottom: 8px; margin: 40px 0 18px; }
+  h3 { font-size: 16px; color: var(--text); margin: 28px 0 10px; }
+  h4 { font-size: 14px; color: var(--muted); margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ── paragraphs / lists ── */
+  p    { margin-bottom: 12px; }
+  ul, ol { margin: 8px 0 14px 22px; }
+  li   { margin: 4px 0; }
+
+  /* ── inline code / pre ── */
+  code { background: var(--code); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: var(--mono); font-size: 12px; color: #c0392b; }
+  pre  { background: #1a1d27; color: #e0e6f0; border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 12px 0 18px; }
+  pre code { background: none; border: none; padding: 0; color: inherit; font-size: 12px; }
+
+  /* ── tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+  th    { background: var(--accent); color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; }
+  td    { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--bg2); }
+  td code { font-size: 11px; }
+
+  /* ── callout boxes ── */
+  .note, .warn, .tip { border-left: 4px solid; border-radius: 0 6px 6px 0; padding: 10px 14px; margin: 14px 0; font-size: 13px; }
+  .note { border-color: var(--accent2); background: #e8f4fb; }
+  .warn { border-color: var(--orange); background: #fdf3e7; }
+  .tip  { border-color: var(--green);  background: #eaf6ee; }
+  .note strong, .warn strong, .tip strong { display: block; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .note strong { color: var(--accent2); }
+  .warn strong { color: var(--orange); }
+  .tip  strong { color: var(--green); }
+
+  /* ── mode badge ── */
+  .mode-tag { display: inline-block; background: var(--accent); color: #fff; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; margin-right: 6px; vertical-align: middle; letter-spacing: 0.5px; }
+
+  /* ── status badge ── */
+  .status { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+  .pass   { background: #e8f8ed; color: var(--green); border: 1px solid #a8d8b8; }
+  .fail   { background: #fdecea; color: var(--red);   border: 1px solid #f5b7b1; }
+
+  /* ── section separator ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 30px 0; }
+
+  /* ── print / PDF ── */
+  @media print {
+    body { font-size: 12px; }
+    .page { max-width: 100%; padding: 20px 30px; }
+    h2 { page-break-before: always; }
+    h2:first-of-type { page-break-before: avoid; }
+    pre, table, .note, .warn, .tip { page-break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+    .cover { page-break-after: always; }
+    .toc   { page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══════════════════════════════════════════════ COVER ══ -->
+<div class="cover">
+  <h1>📷 CameraServer</h1>
+  <div class="subtitle">User Manual &amp; API Reference</div>
+  <div style="margin-bottom:20px;">
+    <span class="badge">.NET 8</span>
+    <span class="badge">ASP.NET Core</span>
+    <span class="badge green">Windows DirectShow</span>
+    <span class="badge orange">Emgu.CV 4.9</span>
+  </div>
+  <div class="meta">Version 1.0 &nbsp;·&nbsp; 2025</div>
+</div>
+
+<!-- ══════════════════════════════════════════════ TOC ══ -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#requirements">System Requirements</a></li>
+    <li><a href="#setup">Installation &amp; Setup</a></li>
+    <li><a href="#running">Running the Server</a></li>
+    <li><a href="#dashboard">Dashboard Overview</a></li>
+    <li><a href="#camera-tab">Camera Tab</a>
+      <ol>
+        <li><a href="#cam-status">Status Panel</a></li>
+        <li><a href="#cam-onoff">Start / Stop Camera</a></li>
+        <li><a href="#cam-port">Port Selection</a></li>
+        <li><a href="#cam-resolution">Resolution</a></li>
+        <li><a href="#cam-rotation">Rotation</a></li>
+        <li><a href="#cam-fps">Target FPS</a></li>
+        <li><a href="#cam-save">Save Settings</a></li>
+        <li><a href="#cam-props">Camera Properties Dialog</a></li>
+      </ol>
+    </li>
+    <li><a href="#test-tab">Test Tab</a>
+      <ol>
+        <li><a href="#test-common">Common Fields</a></li>
+        <li><a href="#mode-normal">Normal Mode</a></li>
+        <li><a href="#mode-read2d">Read2d Mode</a></li>
+        <li><a href="#mode-compare">Compare Mode</a></li>
+        <li><a href="#mode-checkled">CheckLed Mode</a></li>
+        <li><a href="#mode-blinkled">BlinkLed Mode</a></li>
+        <li><a href="#test-result">Result Display</a></li>
+      </ol>
+    </li>
+    <li><a href="#snapshot">Snapshot &amp; Freeze</a></li>
+    <li><a href="#logs-tab">Logs Tab</a></li>
+    <li><a href="#api">REST API Reference</a></li>
+    <li><a href="#settings">Settings Persistence</a></li>
+    <li><a href="#troubleshoot">Troubleshooting</a></li>
+  </ol>
+</div>
+
+<!-- ══════════════════════════════════════════════ 1 ══ -->
+<h2 id="overview">1. Overview</h2>
+<p>
+  CameraServer is a Windows web application that keeps a USB or built-in camera open at all
+  times and exposes it through a REST API and an in-browser dashboard. It is designed for
+  automated vision testing on manufacturing or QA lines where the camera must respond quickly
+  to test requests without the delay of opening and closing the device each time.
+</p>
+<p>Key capabilities:</p>
+<ul>
+  <li><strong>Persistent camera</strong> — opens once at startup, stays open until manually stopped.</li>
+  <li><strong>Blocking test API</strong> — a single <code>POST /api/test/start</code> call waits until the result is ready and returns it in one response.</li>
+  <li><strong>Five test modes</strong> — barcode reading, image comparison, LED color detection, LED blink measurement, and live observation.</li>
+  <li><strong>MJPEG live stream</strong> and snapshot accessible from any browser on the network.</li>
+  <li><strong>Structured JSONL logging</strong> with in-browser log viewer and monthly file export.</li>
+  <li><strong>Auto-recovery</strong> — black-frame detection triggers automatic camera reopen.</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════ 2 ══ -->
+<h2 id="requirements">2. System Requirements</h2>
+<table>
+  <tr><th>Component</th><th>Requirement</th></tr>
+  <tr><td>Operating System</td><td>Windows 10 / Windows 11 (64-bit)</td></tr>
+  <tr><td>.NET Runtime</td><td>.NET 8.0 or later</td></tr>
+  <tr><td>Camera</td><td>Any DirectShow-compatible USB or built-in webcam</td></tr>
+  <tr><td>Browser</td><td>Chrome, Edge, Firefox (for dashboard)</td></tr>
+  <tr><td>RAM</td><td>256 MB minimum (512 MB+ recommended for 1080p)</td></tr>
+  <tr><td>Network</td><td>Required only if accessing dashboard from another machine</td></tr>
+</table>
+<div class="note"><strong>Note</strong>DirectShow is a Windows-only camera API. The application will not run on Linux or macOS.</div>
+
+<!-- ══════════════════════════════════════════════ 3 ══ -->
+<h2 id="setup">3. Installation &amp; Setup</h2>
+<h3>3.1 Install .NET 8</h3>
+<p>Download and install the .NET 8 Runtime (or SDK if you plan to build) from <code>https://dotnet.microsoft.com/download</code>.</p>
+
+<h3>3.2 Project Files</h3>
+<p>Place the CameraServer project folder anywhere on the machine. The working directory when running will be the project root. The application will automatically create:</p>
+<ul>
+  <li><code>data/settings.json</code> — persisted runtime settings</li>
+  <li><code>logs/camera_YYYY-MM.jsonl</code> — monthly log file</li>
+</ul>
+
+<h3>3.3 Configure <code>appsettings.json</code></h3>
+<pre><code>{
+  "Urls": "http://0.0.0.0:5000",
+  "Camera": {
+    "Port": 0,
+    "Api": "DShow",
+    "TargetFps": 30,
+    "BlackFrameThreshold": 5,
+    "BlackFrameMean": 8.0,
+    "ReopenDelayMs": 800
+  }
+}</code></pre>
+<table>
+  <tr><th>Key</th><th>Default</th><th>Description</th></tr>
+  <tr><td><code>Urls</code></td><td><code>http://0.0.0.0:5000</code></td><td>Listening address. Use <code>0.0.0.0</code> to accept connections from all network interfaces.</td></tr>
+  <tr><td><code>Camera:Port</code></td><td><code>0</code></td><td>Camera device index. 0 = first camera, 1 = second, etc.</td></tr>
+  <tr><td><code>Camera:Api</code></td><td><code>DShow</code></td><td><code>DShow</code> (recommended) or <code>Any</code>.</td></tr>
+  <tr><td><code>Camera:TargetFps</code></td><td><code>30</code></td><td>Initial capture rate. Overridden by saved settings.</td></tr>
+  <tr><td><code>Camera:BlackFrameThreshold</code></td><td><code>5</code></td><td>Consecutive black frames before triggering auto-reopen.</td></tr>
+  <tr><td><code>Camera:BlackFrameMean</code></td><td><code>8.0</code></td><td>Pixel mean value below which a frame is classified as black.</td></tr>
+  <tr><td><code>Camera:ReopenDelayMs</code></td><td><code>800</code></td><td>Milliseconds to wait before reopen attempt.</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════ 4 ══ -->
+<h2 id="running">4. Running the Server</h2>
+<h3>4.1 Development</h3>
+<pre><code>cd CameraServer
+dotnet run</code></pre>
+
+<h3>4.2 Production (pre-built)</h3>
+<pre><code>dotnet publish -c Release -o publish
+cd publish
+dotnet CameraServer.dll</code></pre>
+
+<h3>4.3 Run as a Windows Service (auto-start)</h3>
+<pre><code># Register (run once as Administrator)
+sc create CameraServer binPath="dotnet C:\CameraServer\publish\CameraServer.dll" start=auto
+
+# Start
+sc start CameraServer</code></pre>
+
+<h3>4.4 Access the Dashboard</h3>
+<p>Open a browser and navigate to:</p>
+<ul>
+  <li><strong>Same machine:</strong> <code>http://localhost:5000</code></li>
+  <li><strong>Remote machine:</strong> <code>http://&lt;server-ip&gt;:5000</code></li>
+</ul>
+<div class="note"><strong>Note</strong>If the camera does not appear immediately, wait 2–3 seconds for the status pill to turn green (Ready).</div>
+
+<!-- ══════════════════════════════════════════════ 5 ══ -->
+<h2 id="dashboard">5. Dashboard Overview</h2>
+<p>The dashboard is a single-page application divided into three areas:</p>
+<table>
+  <tr><th>Area</th><th>Description</th></tr>
+  <tr><td><strong>Header</strong></td><td>Server title, camera status pill (Ready / BlackFrame / Reopening / Stopped / Error), live FPS, resolution, and uptime.</td></tr>
+  <tr><td><strong>Camera Panel (left)</strong></td><td>Live MJPEG stream. Overlay buttons: Snapshot, Reopen, and Resume (when frozen).</td></tr>
+  <tr><td><strong>Right Panel (tabs)</strong></td><td>Three tabs: <em>Test</em>, <em>Camera</em>, <em>Logs</em>.</td></tr>
+</table>
+
+<h3>Status Pill Colors</h3>
+<table>
+  <tr><th>Color</th><th>State</th><th>Meaning</th></tr>
+  <tr><td>🟢 Green</td><td>Ready</td><td>Camera is open and streaming normally.</td></tr>
+  <tr><td>🟡 Yellow (pulsing)</td><td>BlackFrame / Reopening</td><td>Black frame detected or camera is reopening.</td></tr>
+  <tr><td>🔴 Red</td><td>Error / Stopped</td><td>Camera could not be opened, or was manually stopped.</td></tr>
+
+</table>
+
+<!-- ══════════════════════════════════════════════ 6 ══ -->
+<h2 id="camera-tab">6. Camera Tab</h2>
+<p>The Camera tab controls the physical camera device and its runtime settings.</p>
+
+<h3 id="cam-status">6.1 Status Panel</h3>
+<p>Shows live read-only information updated every 2 seconds:</p>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td>State</td><td>Current camera state (Ready, BlackFrame, Reopening, Stopped, Error).</td></tr>
+  <tr><td>Port</td><td>Active device index.</td></tr>
+  <tr><td>Resolution</td><td>Actual width × height returned by the driver.</td></tr>
+  <tr><td>FPS</td><td>Measured capture rate (averaged over 2 seconds).</td></tr>
+  <tr><td>Uptime</td><td>Time since the server started.</td></tr>
+  <tr><td>Black frames</td><td>Count of consecutive black frames detected.</td></tr>
+</table>
+
+<h3 id="cam-onoff">6.2 Start / Stop Camera</h3>
+<p>
+  <strong>⏹ Stop Camera</strong> — Disposes the camera handle. The physical camera LED turns off.
+  The capture loop enters idle mode (no CPU usage for frame processing).
+</p>
+<p>
+  <strong>▶ Start Camera</strong> — Reopens the camera using the current port and resolution settings.
+  Only visible when the camera is stopped.
+</p>
+<p>
+  <strong>🔄 Reopen</strong> — Force-disposes and reopens the camera without changing any settings.
+  Useful to recover from a temporary hardware issue.
+</p>
+<div class="warn"><strong>Warning</strong>Stopping the camera while a test is running will cause the test to time out.</div>
+
+<h3 id="cam-port">6.3 Port Selection</h3>
+<p>
+  Enter the camera device index (integer, starting from 0) and click <strong>Set Port</strong>.
+  The server immediately disposes the current camera and reopens it on the new port.
+  The new port is persisted automatically.
+</p>
+<table>
+  <tr><th>Value</th><th>Meaning</th></tr>
+  <tr><td>0</td><td>First camera (default, usually the built-in webcam)</td></tr>
+  <tr><td>1</td><td>Second camera (first external USB camera)</td></tr>
+  <tr><td>2, 3, …</td><td>Additional cameras in enumeration order</td></tr>
+</table>
+
+<h3 id="cam-resolution">6.4 Resolution</h3>
+<p>Select a preset from the dropdown or choose <strong>Custom…</strong> to enter width and height manually, then click <strong>Apply</strong>.</p>
+<table>
+  <tr><th>Preset</th><th>Use case</th></tr>
+  <tr><td>Auto (camera default)</td><td>Lets the driver choose (typically 640×480)</td></tr>
+  <tr><td>320 × 240</td><td>Low bandwidth, fast processing</td></tr>
+  <tr><td>640 × 480</td><td>Standard definition</td></tr>
+  <tr><td>1280 × 720</td><td>HD — recommended for barcode reading</td></tr>
+  <tr><td>1920 × 1080</td><td>Full HD — high detail, higher CPU usage</td></tr>
+  <tr><td>Custom…</td><td>Any width/height supported by the camera driver</td></tr>
+</table>
+<div class="note"><strong>Note</strong>Changing resolution triggers a camera reopen (briefly turns the LED off and on). The new resolution is persisted automatically.</div>
+
+<h3 id="cam-rotation">6.5 Rotation</h3>
+<p>
+  Select the rotation angle from the dropdown. Rotation is applied <strong>server-side</strong> on
+  every captured frame — it affects the live stream, snapshots, and all test modes including ROI
+  coordinates and barcode decoding.
+</p>
+<table>
+  <tr><th>Option</th><th>Use case</th></tr>
+  <tr><td>0°</td><td>Normal orientation</td></tr>
+  <tr><td>90° CW</td><td>Camera physically mounted rotated left</td></tr>
+  <tr><td>180°</td><td>Camera physically mounted upside-down</td></tr>
+  <tr><td>270° CCW</td><td>Camera physically mounted rotated right</td></tr>
+</table>
+<p>Rotation takes effect immediately but is <strong>not persisted until you click Save Settings</strong>.</p>
+
+<h3 id="cam-fps">6.6 Target FPS</h3>
+<p>
+  Controls how many frames per second the capture loop processes. Lower values reduce CPU and
+  network usage; higher values give faster test response times at the cost of more resources.
+</p>
+<p>Select from 5 / 10 / 15 / 20 / 25 / 30 / 60 fps. Takes effect immediately but is
+  <strong>not persisted until you click Save Settings</strong>.</p>
+<div class="tip"><strong>Tip</strong>For barcode reading, 15–20 fps is usually sufficient. For BlinkLed at 2 Hz, use at least 20 fps (Nyquist: at least 2× the blink frequency).</div>
+
+<h3 id="cam-save">6.7 Save Settings</h3>
+<p>
+  Click <strong>💾 Save Settings</strong> to write the current port, resolution, FPS, and rotation
+  to <code>data/settings.json</code>. These values will be restored automatically on next server start,
+  overriding <code>appsettings.json</code>.
+</p>
+<p>Port and resolution changes are auto-persisted when applied (since they require a reopen).
+  FPS and rotation changes require an explicit Save.</p>
+
+<h3 id="cam-props">6.8 Camera Properties Dialog</h3>
+<p>
+  Click <strong>⚙️ Open Camera Properties</strong> to open the camera manufacturer's native
+  settings window <strong>on the server screen</strong>. This dialog is provided by the camera
+  driver and typically contains:
+</p>
+<ul>
+  <li>Exposure (auto/manual)</li>
+  <li>White balance</li>
+  <li>Focus (auto/manual)</li>
+  <li>Anti-flicker (50 Hz / 60 Hz)</li>
+  <li>Brightness, contrast, saturation, sharpness</li>
+</ul>
+<p>The capture loop pauses while the dialog is open. The stream resumes automatically when the dialog is closed.</p>
+<div class="warn"><strong>Warning</strong>The dialog opens on the physical monitor connected to the server, not in the browser. You must have access to the server screen to use this feature.</div>
+
+<!-- ══════════════════════════════════════════════ 7 ══ -->
+<h2 id="test-tab">7. Test Tab</h2>
+<p>
+  The Test tab is the primary interface for running vision tests. A test request is sent to
+  <code>POST /api/test/start</code> which <strong>blocks</strong> until the result is ready (pass/fail)
+  or the timeout expires.
+</p>
+
+<h3 id="test-common">7.1 Common Fields</h3>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td>Head</td><td>Identifier for the test head / station (e.g. A, B, Station1). Included in logs and results.</td></tr>
+  <tr><td>Step</td><td>Name of the test step (e.g. read2d, check_led). Included in logs and results.</td></tr>
+  <tr><td>Mode</td><td>Test algorithm to run (see sections below).</td></tr>
+  <tr><td>Timeout (ms)</td><td>Maximum time to wait for a result before returning Timeout status. Default: 30 000 ms.</td></tr>
+  <tr><td>ROI X / Y / W / H</td><td>Region of Interest in pixels. Set all to 0 to use the full frame. The ROI rectangle is drawn in red on the live stream during a test.</td></tr>
+</table>
+
+<p>All fields are remembered in browser local storage and restored on page reload.</p>
+
+<h3 id="mode-normal">7.2 <span class="mode-tag">NORMAL</span> Normal Mode</h3>
+<p>
+  No image processing is performed. The camera keeps streaming and the test waits until the
+  timeout expires, then returns <span class="fail">TIMEOUT</span>. Useful for keeping the
+  camera active during observation steps in automated sequences.
+</p>
+
+<h3 id="mode-read2d">7.3 <span class="mode-tag">READ2D</span> Read2d Mode</h3>
+<p>Reads a 2D DataMatrix barcode from the camera frame using ZXing.Net.</p>
+<table>
+  <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+  <tr><td>Expected digits</td><td>10</td><td>Required barcode string length. Set to 0 to accept any length.</td></tr>
+  <tr><td>Pre-rotate °</td><td>0</td><td>Rotate the ROI by this many degrees before attempting to decode. Useful when the barcode is printed at a fixed angle.</td></tr>
+</table>
+<p><strong>Algorithm:</strong> The server tries the frame at 0° then rotates ±5° increments up to ±90°
+  until a barcode is decoded or the timeout expires.</p>
+<p><strong>Result:</strong> <span class="pass">PASS</span> — barcode decoded with correct digit count.
+  <span class="fail">FAIL</span> — decoded but wrong digit count. <span class="fail">TIMEOUT</span> — not decoded within the timeout.</p>
+
+<h3 id="mode-compare">7.4 <span class="mode-tag">COMPARE</span> Compare Mode</h3>
+<p>Compares the live frame against one or more reference images using KAZE feature matching.</p>
+<table>
+  <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+  <tr><td>Reference folder</td><td><em>config/{step}</em></td><td>Folder containing reference images. Defaults to <code>config/{step name}</code>.</td></tr>
+  <tr><td>Steps (image count)</td><td>1</td><td>Number of sequential reference images to match (1 for single-image comparison).</td></tr>
+</table>
+<p><strong>Reference image naming:</strong> <code>{Head}Image1.png</code>, <code>{Head}Image2.png</code>, …</p>
+<p>Example: Head = <code>A</code>, Steps = 2 → needs <code>AImage1.png</code> and <code>AImage2.png</code> in the reference folder.</p>
+<p><strong>Result:</strong> <span class="pass">PASS</span> when all steps are matched in sequence.
+  <span class="fail">FAIL</span> if a reference file is missing or no match is found within the timeout.</p>
+
+<h3 id="mode-checkled">7.5 <span class="mode-tag">CHECKLED</span> CheckLed Mode</h3>
+<p>Detects whether a solid-color LED is on and stays on for a minimum duration.</p>
+<table>
+  <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+  <tr><td>Color space</td><td>BGR</td><td>BGR (Blue-Green-Red, 0–255 each) or HSV (H: 0–179, S/V: 0–255).</td></tr>
+  <tr><td>Low [0] [1] [2]</td><td>0, 0, 0</td><td>Lower bound of the color range (channel 0, 1, 2).</td></tr>
+  <tr><td>High [0] [1] [2]</td><td>255, 255, 255</td><td>Upper bound of the color range.</td></tr>
+  <tr><td>Min pixels</td><td>100</td><td>Minimum number of pixels in range to consider the LED "on".</td></tr>
+  <tr><td>Hold ms</td><td>500</td><td>The LED must remain on continuously for this many milliseconds.</td></tr>
+</table>
+<div class="tip"><strong>Tip — Finding HSV values</strong>Use a color picker tool to get the RGB value of the LED, then convert to HSV. For a green LED (RGB 0, 255, 0), the HSV range is approximately H: 55–65, S: 200–255, V: 100–255. HSV is more robust to lighting variation than BGR.</div>
+<p><strong>Result:</strong> <span class="pass">PASS</span> when the color holds for the required duration.
+  <span class="fail">TIMEOUT</span> if the LED is never detected.</p>
+
+<h3 id="mode-blinkled">7.6 <span class="mode-tag">BLINKLED</span> BlinkLed Mode</h3>
+<p>Measures the blink frequency (Hz) and duty cycle (%) of a blinking LED.</p>
+<table>
+  <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+  <tr><td>Color space, Low, High, Min pixels</td><td>—</td><td>Same as CheckLed — defines what counts as "LED on".</td></tr>
+  <tr><td>Freq Hz</td><td>0</td><td>Expected blink frequency. Set to 0 to skip frequency check.</td></tr>
+  <tr><td>±Tolerance (freq)</td><td>0.5</td><td>Acceptable deviation from expected frequency in Hz.</td></tr>
+  <tr><td>Duty %</td><td>0</td><td>Expected duty cycle (0–100%). Set to 0 to skip duty check.</td></tr>
+  <tr><td>±Tolerance (duty)</td><td>5</td><td>Acceptable deviation from expected duty cycle in %.</td></tr>
+  <tr><td>Sample cycles</td><td>20</td><td>Number of full on/off cycles to average before evaluating. Higher = more accurate but slower.</td></tr>
+</table>
+<div class="note"><strong>Note — FPS requirement</strong>The capture FPS must be at least <strong>4×</strong> the blink frequency for accurate measurement. For a 5 Hz LED, use at least 20 fps.</div>
+<p><strong>Result:</strong> <span class="pass">PASS</span> when both enabled checks are within tolerance.
+  <span class="fail">FAIL</span> if frequency or duty is out of range.
+  <span class="fail">TIMEOUT</span> if the LED never blinks or cycles cannot be measured.</p>
+
+<h3 id="test-result">7.7 Result Display</h3>
+<p>After a test completes, the result box shows:</p>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td>Badge</td><td>PASS (green), FAIL (red), TIMEOUT (red), ERROR (red), RUNNING (yellow), CANCELLED (red)</td></tr>
+  <tr><td>Value</td><td>Primary result — e.g. decoded barcode string, "Color Detected", measured frequency/duty.</td></tr>
+  <tr><td>Detail</td><td>Additional information — digit count, matched steps, pixel count, tolerance check results.</td></tr>
+  <tr><td>Time</td><td>Elapsed time (seconds) and wall-clock timestamp.</td></tr>
+</table>
+<p>After a test completes, the display <strong>automatically freezes</strong> on the last frame so you can inspect what the camera saw. Click <strong>✕ Resume</strong> to return to live view.</p>
+
+<!-- ══════════════════════════════════════════════ 8 ══ -->
+<h2 id="snapshot">8. Snapshot &amp; Freeze</h2>
+<p>
+  Clicking <strong>📷 Snapshot</strong> fetches the current frame from the server and displays it
+  as a <strong>frozen static image</strong> in the camera panel. The live stream continues running
+  on the server — only the browser display is frozen.
+</p>
+<table>
+  <tr><th>Action</th><th>Behavior</th></tr>
+  <tr><td>📷 Snapshot</td><td>Freeze display on the current frame.</td></tr>
+  <tr><td>📷 Snapshot (again)</td><td>Update the frozen frame to the latest available frame.</td></tr>
+  <tr><td>✕ Resume</td><td>Return to live MJPEG stream.</td></tr>
+  <tr><td>▶ Start Test</td><td>Automatically resumes live view so you can watch the test run.</td></tr>
+  <tr><td>Test completes</td><td>Automatically freezes on the last test frame.</td></tr>
+</table>
+<div class="tip"><strong>Tip</strong>To save a snapshot image to disk, right-click the frozen image and choose "Save image as…".</div>
+
+<!-- ══════════════════════════════════════════════ 9 ══ -->
+<h2 id="logs-tab">9. Logs Tab</h2>
+<p>The Logs tab shows structured event and diagnostic messages from the server.</p>
+
+<h3>Filtering</h3>
+<table>
+  <tr><th>Level</th><th>Color</th><th>Meaning</th></tr>
+  <tr><td>EVENT</td><td>Cyan</td><td>Key lifecycle events: camera open/close, test start/end, settings saved.</td></tr>
+  <tr><td>INFO</td><td>Gray</td><td>General informational messages.</td></tr>
+  <tr><td>WARN</td><td>Yellow</td><td>Non-fatal issues: black frames, camera null detected.</td></tr>
+  <tr><td>ERROR</td><td>Red</td><td>Exceptions and failures.</td></tr>
+</table>
+
+<h3>Controls</h3>
+<ul>
+  <li><strong>Level dropdown</strong> — filter by log level.</li>
+  <li><strong>↺ Refresh</strong> — manually reload entries.</li>
+  <li><strong>⬇ Export</strong> — download the current month's JSONL log file.</li>
+  <li><strong>Auto-refresh (3s)</strong> — checkbox to enable/disable automatic 3-second polling.</li>
+</ul>
+
+<h3>Log File Format</h3>
+<p>Each line in the exported file is a JSON object:</p>
+<pre><code>{"time":"2025-01-15T10:23:01.123","level":"EVENT","category":"TEST_START","head":"A","step":"scan","message":"mode=Read2d,head=A,step=scan,timeout=30000"}
+{"time":"2025-01-15T10:23:03.456","level":"EVENT","category":"TEST_END","head":"A","step":"scan","message":"status=Pass,value=1234567890,elapsed=2333ms"}</code></pre>
+
+<!-- ══════════════════════════════════════════════ 10 ══ -->
+<h2 id="api">10. REST API Reference</h2>
+<p>All endpoints are relative to the server base URL (default: <code>http://localhost:5000</code>).</p>
+
+<h3>Camera</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Body</th><th>Description</th></tr>
+  <tr><td>GET</td><td><code>/api/camera/status</code></td><td>—</td><td>Camera state, resolution, FPS, rotation, uptime.</td></tr>
+  <tr><td>GET</td><td><code>/api/camera/config</code></td><td>—</td><td>Current CameraProps (brightness, contrast, …).</td></tr>
+  <tr><td>POST</td><td><code>/api/camera/config</code></td><td>CameraProps JSON</td><td>Update image quality properties.</td></tr>
+  <tr><td>POST</td><td><code>/api/camera/port</code></td><td><code>{"port":0}</code></td><td>Change device index and reopen. Auto-persisted.</td></tr>
+  <tr><td>POST</td><td><code>/api/camera/resolution</code></td><td><code>{"width":1280,"height":720}</code></td><td>Change resolution and reopen. Auto-persisted.</td></tr>
+  <tr><td>POST</td><td><code>/api/camera/fps</code></td><td><code>{"fps":30}</code></td><td>Set target FPS (1–120). Persisted on Save.</td></tr>
+  <tr><td>POST</td><td><code>/api/camera/rotation</code></td><td><code>{"degrees":90}</code></td><td>Set rotation (0/90/180/270). Persisted on Save.</td></tr>
+  <tr><td>POST</td><td><code>/api/camera/save</code></td><td>—</td><td>Write current settings to <code>data/settings.json</code>.</td></tr>
+  <tr><td>POST</td><td><code>/api/camera/reopen</code></td><td>—</td><td>Force reopen the camera.</td></tr>
+  <tr><td>POST</td><td><code>/api/camera/stop</code></td><td>—</td><td>Stop the camera (LED off).</td></tr>
+  <tr><td>POST</td><td><code>/api/camera/start</code></td><td>—</td><td>Start the camera (if stopped).</td></tr>
+  <tr><td>POST</td><td><code>/api/camera/show-properties</code></td><td>—</td><td>Open DirectShow properties dialog on server screen.</td></tr>
+</table>
+
+<h3>Test</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td>POST</td><td><code>/api/test/start</code></td><td><strong>Blocking.</strong> Runs a test and returns the result when done.</td></tr>
+  <tr><td>DELETE</td><td><code>/api/test/cancel</code></td><td>Cancel the running test. The blocked POST returns with status=Cancelled.</td></tr>
+  <tr><td>GET</td><td><code>/api/test/status</code></td><td>Non-blocking status check (same response as camera status).</td></tr>
+  <tr><td>GET</td><td><code>/api/test/ping</code></td><td>Quick health check. Returns <code>{"ok":true}</code>.</td></tr>
+</table>
+
+<h4>Test Request Body</h4>
+<pre><code>{
+  "mode":      "Read2d",       // Normal | Read2d | Compare | CheckLed | BlinkLed
+  "head":      "A",            // Station identifier
+  "step":      "scan",         // Step name
+  "timeoutMs": 30000,          // Timeout in milliseconds
+  "roi": { "x":0, "y":0, "width":0, "height":0 },   // 0=full frame
+
+  // Read2d only
+  "expectedDigits": 10,        // 0 = accept any
+  "adjustDegree":   0,
+
+  // Compare only
+  "compareFolder": "config/scan",
+  "compareSteps":  1,
+
+  // CheckLed / BlinkLed
+  "useHsv":      false,
+  "colorLow":    [0, 200, 0],
+  "colorHigh":   [100, 255, 100],
+  "colorMaskPx": 100,
+  "colorHoldMs": 500,
+
+  // BlinkLed only
+  "expectedFrequency":  2.0,
+  "frequencyTolerance": 0.5,
+  "expectedDuty":       50.0,
+  "dutyTolerance":      10.0,
+  "blinkSampleCount":   20
+}</code></pre>
+
+<h4>Test Result Body</h4>
+<pre><code>{
+  "status":    "Pass",             // Pass | Fail | Timeout | Error | Cancelled
+  "value":     "1234567890",       // Primary result value
+  "details":   "digits=10",        // Additional detail
+  "elapsedMs": 2333,               // Time taken in milliseconds
+  "head":      "A",
+  "step":      "scan",
+  "timestamp": "2025-01-15T10:23:03.456"
+}</code></pre>
+
+<h3>Stream</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td>GET</td><td><code>/stream</code></td><td>MJPEG multipart stream. Use as <code>&lt;img src="/stream"&gt;</code> or open in browser.</td></tr>
+  <tr><td>GET</td><td><code>/snapshot</code></td><td>Latest frame as JPEG file download.</td></tr>
+  <tr><td>GET</td><td><code>/snapshot/inline</code></td><td>Latest frame as inline JPEG (no download prompt).</td></tr>
+</table>
+
+<h3>Logs</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Query Params</th><th>Description</th></tr>
+  <tr><td>GET</td><td><code>/api/logs</code></td><td><code>count</code>, <code>level</code>, <code>category</code></td><td>Recent log entries from in-memory ring buffer (max 500).</td></tr>
+  <tr><td>GET</td><td><code>/api/logs/export</code></td><td>—</td><td>Download current month JSONL log file.</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════ 11 ══ -->
+<h2 id="settings">11. Settings Persistence</h2>
+<p>Settings are stored in two places:</p>
+
+<h3>Server-side (<code>data/settings.json</code>)</h3>
+<p>Stores hardware settings that affect the camera on startup:</p>
+<pre><code>{
+  "Port":      0,
+  "Width":     1280,
+  "Height":    720,
+  "TargetFps": 30,
+  "Rotation":  0
+}</code></pre>
+<p>
+  This file is loaded at server start and overrides the corresponding values in
+  <code>appsettings.json</code>. It is written when:
+</p>
+<ul>
+  <li>Port is changed (automatic)</li>
+  <li>Resolution is changed (automatic)</li>
+  <li><strong>💾 Save Settings</strong> is clicked (FPS and rotation)</li>
+  <li><code>POST /api/camera/save</code> is called via API</li>
+</ul>
+
+<h3>Browser-side (localStorage)</h3>
+<p>Stores all Test tab form fields (mode, timeout, ROI, LED color ranges, etc.) per browser. These values are restored automatically on page reload. Camera hardware settings (port, resolution, FPS, rotation) are always loaded from the server.</p>
+
+<!-- ══════════════════════════════════════════════ 12 ══ -->
+<h2 id="troubleshoot">12. Troubleshooting</h2>
+
+<h3>Camera stays on "Opening" or shows "Error"</h3>
+<ul>
+  <li>Check that the correct port index is set. Try 0, 1, 2 in order.</li>
+  <li>Ensure no other application (Teams, Zoom, OBS) has the camera open.</li>
+  <li>Try clicking <strong>🔄 Reopen</strong>.</li>
+  <li>Check the Logs tab for <code>CAM_OPEN_FAIL</code> or <code>CAM_OPEN_EX</code> messages.</li>
+</ul>
+
+<h3>Black frames / camera keeps reopening</h3>
+<ul>
+  <li>This is normal during low-light conditions. The auto-recovery will reopen the camera.</li>
+  <li>Increase <code>Camera:BlackFrameMean</code> in <code>appsettings.json</code> if false positives are too frequent (default 8.0).</li>
+  <li>Increase <code>Camera:BlackFrameThreshold</code> to require more consecutive black frames before reopening (default 5).</li>
+</ul>
+
+<h3>Barcode not detected (Read2d)</h3>
+<ul>
+  <li>Ensure the barcode is clearly visible and in focus.</li>
+  <li>Use the ROI to crop to the barcode area — this improves decode speed and accuracy.</li>
+  <li>Try the <strong>Pre-rotate °</strong> field if the barcode is at a fixed angle.</li>
+  <li>Try a higher resolution (1280×720 or 1920×1080).</li>
+  <li>Open the Camera Properties dialog to adjust exposure and focus.</li>
+</ul>
+
+<h3>BlinkLed frequency reading is inaccurate</h3>
+<ul>
+  <li>Ensure FPS is at least 4× the blink frequency.</li>
+  <li>Increase <strong>Sample cycles</strong> (e.g. 30–50) for a more stable average.</li>
+  <li>Use a tight ROI around the LED to avoid noise from surrounding pixels.</li>
+</ul>
+
+<h3>Server crashes when changing resolution or stopping camera</h3>
+<ul>
+  <li>This was a known threading issue, fixed in the current version. Port and resolution changes now use signal flags that are consumed safely by the capture thread.</li>
+</ul>
+
+<h3>Dashboard not accessible from another machine</h3>
+<ul>
+  <li>Verify <code>Urls</code> in <code>appsettings.json</code> is <code>http://0.0.0.0:5000</code> (not localhost).</li>
+  <li>Allow port 5000 through Windows Firewall: <em>Windows Defender Firewall → Allow an app → Add port 5000</em>.</li>
+</ul>
+
+<hr>
+<p style="text-align:center;color:#888;font-size:12px;margin-top:30px;">
+  CameraServer &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; 2025
+  <br>To save as PDF: open this file in Chrome or Edge, press <strong>Ctrl+P</strong>, choose <em>Save as PDF</em>.
+</p>
+
+</div>
+</body>
+</html>

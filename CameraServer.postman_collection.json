@@ -1,0 +1,338 @@
+{
+  "info": {
+    "name": "CameraServer",
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "description": "All API endpoints for CameraServer (ASP.NET Core). Set the `base_url` variable to match your server address.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ],
+  "item": [
+
+    {
+      "name": "Camera",
+      "item": [
+        {
+          "name": "Get Status",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/camera/status",
+            "description": "Returns current camera state, resolution, FPS, rotation, uptime, and active test status."
+          }
+        },
+        {
+          "name": "Get Config",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/camera/config",
+            "description": "Returns current CameraProps (brightness, contrast, gain, etc.)."
+          }
+        },
+        {
+          "name": "Set Config",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/camera/config",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"width\": 1280,\n  \"height\": 720,\n  \"brightness\": 128,\n  \"contrast\": 128,\n  \"saturation\": 128,\n  \"sharpness\": 128,\n  \"gain\": 0,\n  \"zoom\": 0,\n  \"pan\": 0,\n  \"tilt\": 0,\n  \"focus\": -1,\n  \"exposure\": -999\n}"
+            },
+            "description": "Update image quality properties. focus=-1 means auto. exposure=-999 means auto."
+          }
+        },
+        {
+          "name": "Set Port",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/camera/port",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"port\": 0\n}"
+            },
+            "description": "Change camera device index (0 = first camera, 1 = second, etc.) and reopen. Auto-persists."
+          }
+        },
+        {
+          "name": "Set Resolution",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/camera/resolution",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"width\": 1280,\n  \"height\": 720\n}"
+            },
+            "description": "Change capture resolution. Triggers a camera reopen. Use 0x0 for camera default. Auto-persists."
+          }
+        },
+        {
+          "name": "Set Target FPS",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/camera/fps",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fps\": 30\n}"
+            },
+            "description": "Set capture loop target FPS (1–120). Takes effect immediately. Use Save Settings to persist."
+          }
+        },
+        {
+          "name": "Set Rotation",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/camera/rotation",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"degrees\": 0\n}"
+            },
+            "description": "Rotate all frames (degrees: 0, 90, 180, 270). Applied server-side — affects stream, snapshot, and all test modes. Use Save Settings to persist."
+          }
+        },
+        {
+          "name": "Save Settings",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/camera/save",
+            "description": "Persist current port, resolution, FPS, and rotation to data/settings.json. Loaded on next server start."
+          }
+        },
+        {
+          "name": "Reopen Camera",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/camera/reopen",
+            "description": "Force-dispose and reopen the camera. Useful after black-frame recovery or hardware changes."
+          }
+        },
+        {
+          "name": "Stop Camera",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/camera/stop",
+            "description": "Dispose the camera handle and stop the capture loop. Camera LED will turn off."
+          }
+        },
+        {
+          "name": "Start Camera",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/camera/start",
+            "description": "Reopen the camera after it was stopped. Has no effect if already running."
+          }
+        },
+        {
+          "name": "Open Camera Properties Dialog",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/camera/show-properties",
+            "description": "Opens the manufacturer's native DirectShow property dialog on the server screen (exposure, focus, white balance, etc.). Capture pauses while the dialog is open."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Test",
+      "item": [
+        {
+          "name": "Start Test — Normal (live view)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/test/start",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"Normal\",\n  \"head\": \"A\",\n  \"step\": \"live\",\n  \"timeoutMs\": 10000,\n  \"roi\": { \"x\": 0, \"y\": 0, \"width\": 0, \"height\": 0 }\n}"
+            },
+            "description": "Normal mode — no processing. Request blocks until timeout. roi 0x0 = full frame."
+          }
+        },
+        {
+          "name": "Start Test — Read2d (DataMatrix barcode)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/test/start",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"Read2d\",\n  \"head\": \"A\",\n  \"step\": \"scan\",\n  \"timeoutMs\": 30000,\n  \"roi\": { \"x\": 0, \"y\": 0, \"width\": 0, \"height\": 0 },\n  \"expectedDigits\": 10,\n  \"adjustDegree\": 0\n}"
+            },
+            "description": "Reads a 2D DataMatrix barcode. expectedDigits=0 accepts any length. adjustDegree pre-rotates the ROI before decoding. Blocks until barcode found or timeout."
+          }
+        },
+        {
+          "name": "Start Test — Compare (feature matching)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/test/start",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"Compare\",\n  \"head\": \"A\",\n  \"step\": \"verify\",\n  \"timeoutMs\": 30000,\n  \"roi\": { \"x\": 0, \"y\": 0, \"width\": 0, \"height\": 0 },\n  \"compareFolder\": \"config/verify\",\n  \"compareSteps\": 1\n}"
+            },
+            "description": "KAZE feature matching against reference image(s) in compareFolder. Reference files must be named {head}Image1.png, {head}Image2.png, etc."
+          }
+        },
+        {
+          "name": "Start Test — CheckLed (BGR)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/test/start",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"CheckLed\",\n  \"head\": \"A\",\n  \"step\": \"led_check\",\n  \"timeoutMs\": 10000,\n  \"roi\": { \"x\": 100, \"y\": 100, \"width\": 200, \"height\": 200 },\n  \"useHsv\": false,\n  \"colorLow\":  [0, 200, 0],\n  \"colorHigh\": [100, 255, 100],\n  \"colorMaskPx\": 100,\n  \"colorHoldMs\": 500\n}"
+            },
+            "description": "Detects a solid LED color in BGR space. PASS when colorMaskPx pixels are in range for colorHoldMs ms continuously."
+          }
+        },
+        {
+          "name": "Start Test — CheckLed (HSV)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/test/start",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"CheckLed\",\n  \"head\": \"A\",\n  \"step\": \"led_check\",\n  \"timeoutMs\": 10000,\n  \"roi\": { \"x\": 100, \"y\": 100, \"width\": 200, \"height\": 200 },\n  \"useHsv\": true,\n  \"colorLow\":  [40, 100, 100],\n  \"colorHigh\": [80, 255, 255],\n  \"colorMaskPx\": 100,\n  \"colorHoldMs\": 500\n}"
+            },
+            "description": "Same as CheckLed but uses HSV color space. H: 0-179, S/V: 0-255. Green LED example: H 40-80."
+          }
+        },
+        {
+          "name": "Start Test — BlinkLed",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/test/start",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"BlinkLed\",\n  \"head\": \"A\",\n  \"step\": \"blink_check\",\n  \"timeoutMs\": 30000,\n  \"roi\": { \"x\": 100, \"y\": 100, \"width\": 200, \"height\": 200 },\n  \"useHsv\": false,\n  \"colorLow\":  [0, 200, 0],\n  \"colorHigh\": [100, 255, 100],\n  \"colorMaskPx\": 100,\n  \"colorHoldMs\": 0,\n  \"expectedFrequency\": 2.0,\n  \"frequencyTolerance\": 0.5,\n  \"expectedDuty\": 50.0,\n  \"dutyTolerance\": 10.0,\n  \"blinkSampleCount\": 10\n}"
+            },
+            "description": "Measures LED blink frequency (Hz) and duty cycle (%). expectedFrequency=0 skips frequency check. expectedDuty=0 skips duty check. Samples blinkSampleCount full cycles before evaluating."
+          }
+        },
+        {
+          "name": "Cancel Test",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/test/cancel",
+            "description": "Cancel any running test. The blocked POST /api/test/start call will return with status=Cancelled."
+          }
+        },
+        {
+          "name": "Get Test Status",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/test/status",
+            "description": "Non-blocking: returns current camera + test status (same as GET /api/camera/status)."
+          }
+        },
+        {
+          "name": "Ping",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/test/ping",
+            "description": "Quick health check. Returns {ok: true, time: ...}."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Stream",
+      "item": [
+        {
+          "name": "MJPEG Live Stream",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/stream",
+            "description": "MJPEG multipart stream. Open in browser or use as <img src='/stream'>. Connection stays open until client disconnects."
+          }
+        },
+        {
+          "name": "Snapshot — Download",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/snapshot",
+            "description": "Returns the latest frame as a JPEG file download (Content-Disposition: attachment)."
+          }
+        },
+        {
+          "name": "Snapshot — Inline",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/snapshot/inline",
+            "description": "Returns the latest frame as an inline JPEG (no download prompt). Used by the UI to freeze the display."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Logs",
+      "item": [
+        {
+          "name": "Get Recent Logs — All",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/logs?count=100",
+              "query": [
+                { "key": "count", "value": "100", "description": "Number of entries to return (default 100, max ring buffer = 500)" }
+              ]
+            },
+            "description": "Returns the most recent log entries from the in-memory ring buffer."
+          }
+        },
+        {
+          "name": "Get Recent Logs — Filter by Level",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/logs?count=50&level=ERROR",
+              "query": [
+                { "key": "count", "value": "50" },
+                { "key": "level", "value": "ERROR", "description": "One of: INFO, WARN, ERROR, EVENT" }
+              ]
+            },
+            "description": "Filter log entries by level. Valid levels: INFO, WARN, ERROR, EVENT."
+          }
+        },
+        {
+          "name": "Get Recent Logs — Filter by Category",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/logs?count=50&category=TEST_START",
+              "query": [
+                { "key": "count", "value": "50" },
+                { "key": "category", "value": "TEST_START", "description": "e.g. TEST_START, TEST_END, CAM_OPEN_OK, BLACK_FRAME" }
+              ]
+            },
+            "description": "Filter by category. Common categories: CAM_OPEN_OK, CAM_REOPEN_START, BLACK_FRAME, TEST_START, TEST_END, CAM_STOP, CAM_START."
+          }
+        },
+        {
+          "name": "Export Log File",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/logs/export",
+            "description": "Download the current month's JSONL log file (logs/camera_YYYY-MM.jsonl). Each line is a JSON object with time, level, category, head, step, message."
+          }
+        }
+      ]
+    }
+
+  ]
+}
